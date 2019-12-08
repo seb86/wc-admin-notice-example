@@ -81,7 +81,7 @@ I **do not offer support** for WooCommerce Admin - Notice Example. Please unders
 
 #### 📝 Reporting Issues
 
-If you think you have found a bug in the project or want to see more examples added, please [open a new issue](https://github.com/seb86/wp-admin-feedback-modal/issues/new) and I will do my best to help you out.
+If you think you have found a bug in the project or want to see more examples added, please [open a new issue](https://github.com/seb86/wc-admin-notice-example/issues/new) and I will do my best to help you out.
 
 ## 👍 Contribute
 
