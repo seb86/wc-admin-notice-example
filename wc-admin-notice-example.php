@@ -1,8 +1,8 @@
 <?php
 /*
  * Plugin Name: WooCommerce Admin - Note Example
- * Plugin URI:  https://sebastiendumont.com
- * Description: Adds a note to the merchant's inbox showing dummy text.
+ * Plugin URI:  https://github.com/seb86/wc-admin-notice-example
+ * Description: Adds a note to the merchant's inbox showing dummy text and two action buttons.
  * Author:      Sébastien Dumont
  * Author URI:  https://sebastiendumont.com
  * Version:     1.0.0
@@ -19,6 +19,13 @@
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  */
+
+namespace WooCommerce\Admin\NoteExample;
+
+defined( 'ABSPATH' ) || exit;
+
+use \Automattic\WooCommerce\Admin\Notes\WC_Admin_Note;
+use \Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes;
 
 if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 
@@ -81,15 +88,12 @@ if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 		 *
 		 * @return void
 		 */
-		public function __construct() {
-			// Initialize the plugin if the minimum version of WooCommerce Admin or above is installed.
-			if ( version_compare( WC_ADMIN_VERSION_NUMBER, '0.22.0', '>=' ) ) {
-				$this->init();
-			}
-		}
+		protected function __construct() {}
 
 		/**
-		 * Cron event handlers.
+		 * Initialize the plugin.
+		 *
+		 * @access public
 		 */
 		public function init() {
 			if ( did_action( 'plugins_loaded' ) ) {
@@ -99,57 +103,108 @@ if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 			}
 		}
 
+		/**
+		 * Loads the plugin when ready.
+		 *
+		 * @access public
+		 */
 		public function on_plugins_loaded() {
+			// Don`t initialize the plugin if the minimum version of WooCommerce Admin or above is NOT installed.
+			if ( ! version_compare( WC_ADMIN_VERSION_NUMBER, '0.22.0', '>=' ) ) {
+				return;
+			}
+
+			// Load textdomain.
 			$this->load_plugin_textdomain();
 
-			add_action( 'wc_admin_daily', array( $this, 'do_wc_admin_daily' ) );
+			// Create custom cron events.
+			add_filter( 'cron_schedules', array( $this, 'add_weekly_schedule' ) );
+			$this->create_events();
+
+			// Cron event handler.
+			add_action( 'wc_admin_daily', array( $this, 'do_wc_admin_event' ) );
+			add_action( 'wc_admin_sunday', array( $this, 'do_wc_admin_event' ) );
 		}
 
 		/**
 		 * Load Localisation files.
+		 *
+		 * @access protected
 		 */
 		protected function load_plugin_textdomain() {
 			load_plugin_textdomain( 'wc-admin-note-example', false, basename( dirname( __DIR__ ) ) . '/languages' );
 		}
 
 		/**
-		 * Daily events to run.
+		 * Adds weekly to the available cron schedules.
+		 *
+		 * @access public
+		 * @param  array $schedules - The available schedules.
+		 * @return array $schedules - The modified schedules.
 		 */
-		public function do_wc_admin_daily() {
-			wp_die('Boo');
+		public function add_weekly_schedule( $schedules ) {
+			$schedules['weekly'] = array(
+				'interval' => 604800,
+				'display'  => __( 'Once Weekly', 'wc-admin-note-example' )
+			);
+
+			return $schedules;
+		}
+
+		/**
+		 * Schedule custom cron events.
+		 *
+		 * @access public
+		 * @static
+		 */
+		public static function create_events() {
+			if ( ! wp_next_scheduled( 'wc_admin_sunday' ) ) {
+				wp_schedule_event( apply_filters( 'woocommerce_admin_note_example_schedule_time', strtotime( 'Sunday this week' ) ), apply_filters( 'woocommerce_admin_note_example_sunday_schedule_event', 'weekly' ), 'wc_admin_sunday' );
+			}
+		}
+
+		/**
+		 * Daily events to run.
+		 *
+		 * @access public
+		 */
+		public function do_wc_admin_event() {
 			$this->possibly_add_note_example();
 		}
 
 		/**
 		 * Possibly add note example.
+		 *
+		 * @access public
+		 * @static
 		 */
 		public static function possibly_add_note_example() {
-			// We only want to show the note if the store is setup.
-			$is_task_list_complete = get_option( 'woocommerce_task_list_complete', false );
+			// We only want to show the note if the store is setup. - Uncomment if you wish to use this check.
+			/*$is_task_list_complete = get_option( 'woocommerce_task_list_complete', false );
 			if ( ! $is_task_list_complete ) {
 				//return;
-			}
+			}*/
 
-			// We want to show the note after 7 days since installing WC Admin.
-			$days_in_seconds = apply_filter( 'woocommerce_admin_note_example_show_after_admin', 7 * DAY_IN_SECONDS );
-			if ( ! $this->wc_admin_active_for( $days_in_seconds ) ) {
-				//return;
-			}
+			// We want to show the note after 7 days since installing WC Admin. - Uncomment if you wish to use this check.
+			/*$days_in_seconds = apply_filters( 'woocommerce_admin_note_example_show_after_admin', 7 * DAY_IN_SECONDS );
+			if ( ! self::wc_admin_active_for( $days_in_seconds ) ) {
+				return;
+			}*/
 
 			require_once( WC_ADMIN_ABSPATH . '/src/Notes/DataStore.php' );
 
 			$data_store = \WC_Data_Store::load( 'admin-note' );
 
-			// Do we already have this note? If so, we're done.
-			$note_ids = $data_store->get_notes_with_name( self::NOTE_NAME );
+			// Do we already have this note? If so, we're done. - Uncomment if you wish to use this check.
+			/*$note_ids = $data_store->get_notes_with_name( self::NOTE_NAME );
 			if ( ! empty( $note_ids ) ) {
 				return;
-			}
+			}*/
 
-			require_once( WC_ADMIN_ABSPATH . '/src/Notes/WC_Admin_Notes.php' );
+			include_once( WC_ADMIN_ABSPATH . '/src/Notes/WC_Admin_Notes.php' );
 
-			// We only want one note at any time.
-			WC_Admin_Notes::delete_notes_with_name( self::NOTE_NAME );
+			// We only want one note at any time. - Uncomment if you wish to delete any previous notes created with the same name.
+			//WC_Admin_Notes::delete_notes_with_name( self::NOTE_NAME );
 
 			/**
 			 * Filter to allow for disabling this note.
@@ -157,53 +212,60 @@ if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 			 * @param boolean default true
 			 */
 			$note_example_enabled = apply_filters( 'woocommerce_admin_note_example_enabled', true );
-
 			if ( ! $note_example_enabled ) {
 				return;
 			}
 
 			// Create a new note.
-			$this->create_new_note( array(
-				'title' => __( 'My Note Title', 'wc-admin-note-example' ),
-				'content' => __( '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Iam enim adesse poterit. Prodest, inquit, mihi eo esse animo. <b>Pollicetur certe.</b> Duo Reges: constructio interrete.</p>', 'wc-admin-note-example' ),
-				'icon' => 'post',
+			self::create_new_note( array(
+				'title'     => __( 'My Note Title', 'wc-admin-note-example' ),
+				'content'   => __( 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Iam enim adesse poterit. Prodest, inquit, mihi eo esse animo. <strong>Pollicetur certe.</strong> Duo Reges: constructio interrete.', 'wc-admin-note-example' ),
+				'icon'      => 'reader',
 				'note_name' => self::NOTE_NAME,
-				'source' => 'wc-admin-note-example',
-				'actions' => array(
+				'source'    => 'wc-admin-note-example',
+				'actions'   => array(
 					array(
-						'name'  => 'do-something',
-						'label' => __( 'Do Something', 'wc-admin-note-example' ),
-						'query' => '#'
+						'name'    => 'do-something',
+						'label'   => __( 'Click Me', 'wc-admin-note-example' ),
+						'query'   => wc_admin_url(),
+						'status'  => 'actioned',
+						'primary' => false
+					),
+					array(
+						'name'    => 'external-url',
+						'label'   => __( 'View Repository', 'wc-admin-note-example' ),
+						'query'   => 'https://github.com/seb86/wc-admin-notice-example',
+						'status'  => 'actioned',
+						'primary' => true
 					)
-				)
-			), true );
+				),
+				'is_snoozable' => true,
+				'locale'       => 'en_US'
+			) );
 		} // END possibly_add_note_example()
 
 		/**
 		 * Create a new note.
 		 *
 		 * @access public
-		 * @param  array  - The arguments of the note to use to create the note.
-		 * @param  bool   - True if note is snoozable, false otherwise by default.
-		 * @param  string - Language of the note. Defaults to "en_US".
+		 * @param  array - The arguments of the note to use to create the note.
 		 */
-		public function create_new_note( $args = array(), $is_snoozable = false, $locale = 'en_US' ) {
+		public function create_new_note( $args = array() ) {
 			require_once( WC_ADMIN_ABSPATH . '/src/Notes/WC_Admin_Note.php' );
 
-			$note = new WC_Admin_Note( array(
-				'is_snoozable' => $is_snoozable,
-				'locale'       => $locale
-			) );
+			$note = new WC_Admin_Note();
 
 			$default_args = array(
 				'title'        => __( 'A Note Title', 'wc-admin-note-example' ),
 				'content'      => __( 'Note content goes here.', 'wc-admin-note-example' ),
 				'content_data' => (object) array(),
-				'type'         => $note::E_WC_ADMIN_NOTE_INFORMATIONAL,
-				'icon'         => 'info', // Types of notes: info, notice, product, post, phone, trophy, thumbs-up
+				'type'         => WC_Admin_Note::E_WC_ADMIN_NOTE_INFORMATIONAL,
+				'icon'         => 'info', // Use http://automattic.github.io/gridicons/ to find the icon you want to use.
 				'note_name'    => '', // Note name is required.
 				'source'       => 'woocommerce-admin',
-				'actions'      => array()
+				'actions'      => array(),
+				'is_snoozable' => false,
+				'locale'       => 'en_US'
 			);
 
 			foreach( $args['actions'] as $key => $action ) {
@@ -211,25 +273,28 @@ if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 					'name'    => 'action-' . $key,
 					'label'   => sprintf( __( 'Button %1$s', 'wc-admin-note-example' ), $key ),
 					'query'   => false,
-					'status'  => $note::E_WC_ADMIN_NOTE_ACTIONED,
-					'primary' => true
+					'status'  => WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED,
+					'primary' => false
 				);
 			}
 
-			// Parse incoming $args into an array and merge it with $defaults
+			// Parse incoming $args into an array and merge it with $default_args
 			$args = wp_parse_args( $args, $default_args );
 
 			$note->set_title( $args['title'] );
 			$note->set_content( $args['content'] );
 			$note->set_content_data( $args['content_data'] );
 			$note->set_type( $args['type'] );
+			$note->set_locale( $args['locale'] );
 			$note->set_icon( $args['icon'] );
 			$note->set_name( $args['note_name'] );
 			$note->set_source( $args['source'] );
+			$note->set_is_snoozable( $args['is_snoozable'] );
+			$note->clear_actions();
 
-			// Create each action button for note.
+			// Create each action button for the note.
 			foreach( $args['actions'] as $key => $action ) {
-				$note->add_action( $action->name, $action->label, $action->query, $action->status, $action->primary );
+				$note->add_action( $action['name'], $action['label'], $action['query'], $action['status'], $action['primary'] );
 			}
 
 			// Save note.
@@ -240,6 +305,7 @@ if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 		 * Test how long WooCommerce Admin has been active.
 		 *
 		 * @access public
+		 * @static
 		 * @param  int  $seconds - Time in seconds to check.
 		 * @return bool Whether or not WooCommerce admin has been active for $seconds.
 		 */
@@ -258,4 +324,4 @@ if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 
 } // END if class exists
 
-return WC_Admin_Notes_Example::instance();
+return WC_Admin_Notes_Example::instance()->init();
