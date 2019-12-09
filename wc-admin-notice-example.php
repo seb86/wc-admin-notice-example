@@ -256,16 +256,18 @@ if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 			$note = new WC_Admin_Note();
 
 			$default_args = array(
-				'title'        => __( 'A Note Title', 'wc-admin-note-example' ),
-				'content'      => __( 'Note content goes here.', 'wc-admin-note-example' ),
-				'content_data' => (object) array(),
-				'type'         => WC_Admin_Note::E_WC_ADMIN_NOTE_INFORMATIONAL,
-				'icon'         => 'info', // Use http://automattic.github.io/gridicons/ to find the icon you want to use.
-				'note_name'    => '', // Note name is required.
-				'source'       => 'woocommerce-admin',
-				'actions'      => array(),
-				'is_snoozable' => false,
-				'locale'       => 'en_US'
+				'title'         => __( 'A Note Title', 'wc-admin-note-example' ),
+				'content'       => __( 'Note content goes here.', 'wc-admin-note-example' ),
+				'content_data'  => (object) array(),
+				'type'          => WC_Admin_Note::E_WC_ADMIN_NOTE_INFORMATIONAL,
+				'icon'          => 'info', // Use http://automattic.github.io/gridicons/ to find the icon you want to use.
+				'note_name'     => '', // Note name is required.
+				'source'        => 'woocommerce-admin',
+				'date_created'  => '',
+				'date_reminder' => '',
+				'actions'       => array(),
+				'is_snoozable'  => false,
+				'locale'        => 'en_US'
 			);
 
 			foreach( $args['actions'] as $key => $action ) {
@@ -289,6 +291,8 @@ if ( ! class_exists( 'WC_Admin_Notes_Example' ) ) {
 			$note->set_icon( $args['icon'] );
 			$note->set_name( $args['note_name'] );
 			$note->set_source( $args['source'] );
+			$note->set_date_created( $args['date_created'] );
+			$note->set_date_reminder( $args['date_reminder'] );
 			$note->set_is_snoozable( $args['is_snoozable'] );
 			$note->clear_actions();
 
